@@ -6,6 +6,7 @@
     <title>ISBN Barcode Scanner Sample</title>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.4.0-iv11082320/dist/dbr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@3.3.1/dist/dce.js"></script>
+    <script src="airtable.browser.js"></script>
     <style>
       .scanner {
         display: none;
@@ -122,12 +123,6 @@
         });
         document.getElementsByClassName("downloadButton")[0].addEventListener("click",function(){
           downloadCSV();
-        });
-        document.getElementsByClassName("saveButton")[0].addEventListener("click",function(){
-          saveToIndexedDB();
-        });
-        document.getElementsByClassName("loadButton")[0].addEventListener("click",function(){
-          loadFromIndexedDB();
         });
       }
 
