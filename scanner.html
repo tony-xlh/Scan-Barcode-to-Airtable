@@ -283,9 +283,12 @@
         if (id && name) {
           document.getElementsByClassName("name")[0].innerText = name;
           billID = id;
+
           base('Bills').find(billID, function(err, record) {
             if (err) { console.error(err); return; }
+            console.log(record);
             let bookRecordIDs = record.fields["Books"];
+            console.log(bookRecordIDs);
             for (let index = 0; index < bookRecordIDs.length; index++) {
               const recordID = bookRecordIDs[index];
               base('Books').find(recordID, function(err, record) {
@@ -346,13 +349,28 @@
         let td = document.createElement("td");
         let deleteButton = document.createElement("button");
         deleteButton.innerText = "Delete";
-        deleteButton.addEventListener("click",function(){
+        deleteButton.addEventListener("click",async function(){
+          if (recordID) {
+            await deleteRemoteRecord(recordID);
+          }
           tr.parentElement.removeChild(tr);
           calculateTotalPrice();
         });
         td.appendChild(deleteButton);
         tr.appendChild(td);
         table.appendChild(tr);
+      }
+
+      function deleteRemoteRecord(recordID){
+        return new Promise((resolve, reject) => {
+          base('Books').destroy([recordID], function(err, deletedRecords) {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(deletedRecords);
+          });
+        })
       }
 
       function getPrice(addon){
