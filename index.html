@@ -61,13 +61,40 @@
       document.getElementsByClassName("cancelButton")[0].addEventListener("click",function(){
         document.getElementsByClassName("inputModal")[0].style.visibility = "hidden";
       });
+      
+      loadBills();
 
       function loadBills(){
+        base('Bills').select({
+          view: "Grid view"
+        }).eachPage(function page(records, fetchNextPage) {
+          records.forEach(function(record) {
+            console.log('Retrieved', record);
+            appendBill(record);
+          });
 
+        }, function done(err) {
+            if (err) { console.error(err); return; }
+        });
+      }
+
+      function appendBill(record){
+        let name = record.fields["Bill Name"];
+        let id = record.id;
+        let item = document.createElement("li");
+        let a = document.createElement("a");
+        a.target = "_blank";
+        a.href = "javascript:void();"
+        a.addEventListener("click",function(){
+          window.open("/scanner.html?id="+encodeURIComponent(id)+"&name="+encodeURIComponent(name));
+        });
+        a.innerText = name;
+        item.appendChild(a);
+        document.getElementsByClassName("bills")[0].appendChild(item);
       }
 
       function createBill(){
-
+        
       }
     </script>
   </body>
