@@ -8,412 +8,66 @@
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@3.3.1/dist/dce.js"></script>
     <script src="airtable.browser.js"></script>
     <style>
-      .scanner {
-        display: none;
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-      }
-      .scanner.active {
-        display: block;
-      }
-
-      .app {
+      .inputModal {
         display: flex;
         flex-direction: column;
-        width: calc(100% - 40px);
-        padding-left: 20px;
-        padding-right: 20px;
-      }
-
-      .title {
-        align-self: center;
-      }
-
-      .inputContainer {
-        display: flex;
-        justify-content: space-between;
-        min-height: 30px;
-        width: 100%;
-        flex-wrap: wrap;
-      }
-
-      .barcodeInput {
-        flex-basis: 50%;
-        flex-grow: 1;
-        min-width: 100px;
-      }
-
-      .scanButton {
-        flex-basis: 20%;
-        flex-grow: 1;
-      }
-
-      .insertButton {
-        flex-basis: 20%;
-        flex-grow: 1;
-      }
-
-      .fullwidth {
-        width: 100%;
-      }
-
-      table {
-        border-collapse: collapse;
-      }
-
-      table, th, td {
-        border: 1px solid black;
-      }
-
-      .resultContainer {
-        padding-top: 1em;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 300px;
+        height: 150px;
+        border: 1px solid gray;
+        border-radius: 5px;
+        background: white;
+        z-index: 9999;
+        visibility: hidden;
       }
     </style>
   </head>
   <body>
     <div class="app">
-      <h2 class="title">Scan Books to Airtable</h2>
-      <div class="inputContainer">
-        <input type="text" class="barcodeInput"/>
-        <button class="scanButton">Scan</button>
-        <button class="insertButton">Insert</button>
-      </div>
+      <h2 class="title">Bills</h2>
+      <ol class="bills"></ol>
+      <button class="newBillButton">New Bill</button>
+    </div>
+    <div class="inputModal">
+      <label>
+        Please input a name for the bill:
+      </label>
+      <input type="text" class="billInput"/>
       <div>
-        <label for="queryTitle">Query title:
-        <input type="checkbox" id="queryTitle" checked/></label>
-        <span id="status"></span>
+        <button class="okayButton">Okay</button>
+        <button class="cancelButton">Cancel</button>
       </div>
-      <div class="resultContainer fullwidth">
-        <table class="results fullwidth">
-          <tr>
-            <th>ISBN</th>
-            <th>Title</th>
-            <th>Price</th>
-            <th>Action</th>
-          </tr>
-        </table>
-      </div>
-      <div>
-        <div>Total price: <span id="total"></span></div>
-        <button class="downloadButton">Download CSV</button>
-        <button class="syncToAirtableButton">Sync to Airtable</button>
-      </div>
-      <div class="scanner"></div>
     </div>
     <script>
       let Airtable = require('airtable');
-      let reader;
-      let enhancer;
-      let interval;
-      let processing = false;
       let airTableToken = "patnRRYYXKkXKSnew.6d442e02ad7d3fffcb5624fc431acd79dc4ed95c6176086337fad36321abbc89";
       let airTableBaseID = "appx4D8MigaCw61SS";
       let base = new Airtable({apiKey: airTableToken}).base(airTableBaseID);
-      const priceColumnIndex = 2;
+      
+      document.getElementsByClassName("newBillButton")[0].addEventListener("click",function(){
+        console.log("click");
+        document.getElementsByClassName("inputModal")[0].style.visibility = "visible";
+      })
 
-      window.onload = function() {
-        init();
-        document.getElementsByClassName("scanButton")[0].addEventListener("click",function(){
-          startScan();
-        });
-        document.getElementsByClassName("insertButton")[0].addEventListener("click",async function(){
-          updateStatus("Inserting...");
-          let barcodeText = document.getElementsByClassName("barcodeInput")[0].value;
-          await insert(barcodeText);
-          calculateTotalPrice();
-          updateStatus("");
-        });
-        document.getElementsByClassName("downloadButton")[0].addEventListener("click",function(){
-          downloadCSV();
-        });
-        document.getElementsByClassName("syncToAirtableButton")[0].addEventListener("click",function(){
-          syncToAirtable();
-        })
+      document.getElementsByClassName("okayButton")[0].addEventListener("click",function(){
+        createBill();
+      });
+
+      document.getElementsByClassName("cancelButton")[0].addEventListener("click",function(){
+        document.getElementsByClassName("inputModal")[0].style.visibility = "hidden";
+      });
+
+      function loadBills(){
+
       }
 
-      function syncToAirtable(){
-        updateStatus("Syncing");
-        let books = buildArrayForAirtable();
-        console.log(books);
-        base('Books').create(books, function(err, records) {
-          updateStatus("");
-          if (err) {
-            console.error(err);
-            alert(err);
-            return;
-          }
-          alert("Uploaded "+records.length+" record(s).");
-        });
-      }
+      function createBill(){
 
-      function buildArrayForAirtable(){
-        let books = [];
-        let rows = document.getElementsByTagName('tr');
-        for (let i = 1; i < rows.length; i++) { //skip the head
-          let row = [], cols = rows[i].querySelectorAll('td, th');
-          let book = {fields:{}};
-          for (let j = 0; j < cols.length - 1; j++) { //do not include the last column
-            book.fields.Barcode = cols[0].innerText;
-            book.fields.Title = cols[1].innerText;
-            book.fields.Price = parseFloat(cols[2].innerText);
-            book.fields.Scanned = [];
-          }
-          books.push(book);
-        }
-        return books;
-      }
-
-      function startScan(){
-        if (!enhancer || !reader) {
-          alert("Please wait for the initialization of Dynamsoft Barcode Reader");
-          return;
-        }
-        document.getElementsByClassName("scanner")[0].classList.add("active");
-        enhancer.open(true);
-      }
-
-      function stopScan(){
-        stopProcessingLoop();
-        enhancer.close(true);
-        document.getElementsByClassName("scanner")[0].classList.remove("active");
-      }
-
-      async function init(){
-        updateStatus("Initializing...");
-        reader = await Dynamsoft.DBR.BarcodeScanner.createInstance();
-        await useEAN13Template();
-        enhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance();
-        enhancer.on("played", (playCallbackInfo) => {
-          startProcessingLoop();
-        });
-        updateStatus("");
-        await enhancer.setUIElement(Dynamsoft.DCE.CameraEnhancer.defaultUIElementURL);
-        setScanRegion();
-        let container = document.getElementsByClassName("scanner")[0];
-        container.appendChild(enhancer.getUIElement());
-        document.getElementsByClassName("dce-btn-close")[0].onclick = function () {
-          stopScan();
-        };
-      }
-
-      function updateStatus(info){
-        document.getElementById("status").innerText = info;
-      }
-
-      function setScanRegion(){
-        enhancer.setScanRegion({
-          regionLeft:0,
-          regionTop:25,
-          regionRight:100,
-          regionBottom:55,
-          regionMeasuredByPercentage: 1
-        });
-      }
-
-      async function useEAN13Template() {
-        await reader.initRuntimeSettingsWithString(`
-        {
-          "FormatSpecification": {
-            "EnableAddOnCode": 1,
-            "Name": "defaultFormatParameterForAllBarcodeFormat"
-          },
-          "ImageParameter": {
-            "BarcodeFormatIds": ["BF_EAN_13"],
-            "BarcodeFormatIds_2": ["BF2_NULL"],
-            "ExpectedBarcodesCount": 1,
-            "FormatSpecificationNameArray": [
-              "defaultFormatParameterForAllBarcodeFormat"
-            ],
-            "Name": "default",
-            "Timeout": 3000
-          },
-          "Version": "3.0"
-        }`);
-      };
-
-      function startProcessingLoop(isBarcode){
-        stopProcessingLoop();
-        interval = setInterval(captureAndDecode,100); // read barcodes
-      }
-
-      function stopProcessingLoop(){
-        if (interval) {
-          clearInterval(interval);
-          interval = undefined;
-        }
-        processing = false;
-      }
-
-      async function captureAndDecode() {
-        if (!enhancer || !reader) {
-          return
-        }
-        if (enhancer.isOpen() === false) {
-          return;
-        }
-        if (processing == true) {
-          return;
-        }
-        processing = true; // set decoding to true so that the next frame will be skipped if the decoding has not completed.
-        let frame = enhancer.getFrame();
-        if (frame) {  
-          let results = await reader.decode(frame);
-          console.log(results);
-          if (results.length > 0) {
-            const result = results[0];
-            document.getElementsByClassName("barcodeInput")[0].value = result.barcodeText;
-            stopScan();
-          }
-          processing = false;
-        }
-      };
-
-      async function insert(barcodeText) {
-        if (barcodeText) {
-          let parts = barcodeText.split("-") 
-          let ISBN = parts[0];
-          let title = "";
-          let addon = "";
-          let price = "";
-          if (parts.length === 2) { //has addon
-            addon = barcodeText.split("-")[1];
-            price = getPrice(addon);
-          }
-          if (document.getElementById("queryTitle").checked) {
-            try {
-              let jsonStr = await queryDetails(ISBN);
-              let jsonObj = JSON.parse(jsonStr);
-              if ("title" in jsonObj) {
-                title = jsonObj["title"];
-              }
-            } catch (error) {
-              console.log(error);
-            }
-          }
-          let rowValues = [ISBN,title,price];
-          insertRow(rowValues);
-        }
-      }
-
-      function insertRow(rowValues){
-        let table = document.getElementsByClassName("results")[0];
-        let tr = document.createElement("tr");
-        for (let index = 0; index < rowValues.length; index++) {
-          const value = rowValues[index];
-          let td = document.createElement("td");
-          td.innerText = value;
-          tr.appendChild(td)
-        }
-        let td = document.createElement("td");
-        let deleteButton = document.createElement("button");
-        deleteButton.innerText = "Delete";
-        deleteButton.addEventListener("click",function(){
-          tr.parentElement.removeChild(tr);
-          calculateTotalPrice();
-        });
-        td.appendChild(deleteButton);
-        tr.appendChild(td);
-        table.appendChild(tr);
-      }
-
-      function getPrice(addon){
-        let price = addon.substring(1,addon.length);
-        price = price / 100;
-        return price;
-      }
-
-      function calculateTotalPrice(){
-        let table = document.getElementsByClassName("results")[0];
-        let rows = table.getElementsByTagName("tr");
-        let total = 0;
-        for (let index = 1; index < rows.length; index++) {
-          const row = rows[index];
-          const cells = row.getElementsByTagName("td");
-          const price = parseFloat(cells[priceColumnIndex].innerText);
-          total = total + price;
-        }
-        document.getElementById("total").innerText = total;
-      }
-
-      function queryDetails(isbn){
-        return new Promise(function (resolve, reject) {
-          let URL = 'https://openlibrary.org/isbn/'+isbn+'.json';
-          console.log(URL);
-          let xhr = new XMLHttpRequest();
-          xhr.open('GET', URL);
-          xhr.onreadystatechange = function(){
-            if(xhr.readyState === 4){
-              resolve(xhr.responseText);
-            }
-          }
-          xhr.onerror = function(){
-            reject("error");
-          }
-          xhr.send();
-        });
-      }
-
-      function downloadCSV() {
-        let csv = getDataTable(true);
-        let csv_string = csv.join('\n');
-        // Download it
-        let filename = 'out.csv';
-        let link = document.createElement('a');
-        link.style.display = 'none';
-        link.setAttribute('target', '_blank');
-        link.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv_string));
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-
-      function getDataTable(toCSV, separator = ','){
-        // Select rows from table
-        let rows = document.getElementsByTagName('tr');
-        // Construct table
-        let table = [];
-        for (let i = 0; i < rows.length; i++) {
-          let row = [], cols = rows[i].querySelectorAll('td, th');
-          for (let j = 0; j < cols.length - 1; j++) { //do not include the last column
-            if (toCSV) {
-              // Clean innertext to remove multiple spaces and jumpline (break csv)
-              let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ')
-              // Escape double-quote with double-double-quote (see https://stackoverflow.com/questions/17808511/properly-escape-a-double-quote-in-csv)
-              data = data.replace(/"/g, '""');
-              // Push escaped string
-              row.push('"' + data + '"');
-            }else{
-              let data = cols[j].innerText;
-              row.push(data);
-            }            
-          }
-          if (toCSV) {
-            table.push(row.join(separator));
-          }else{
-            table.push(row);
-          }
-        }
-        return table;
-      }
-
-      function loadDataToTable(table){
-        resetTable();
-        for (let index = 1; index < table.length; index++) {
-          const row = table[index];
-          insertRow(row);
-        }
-      }
-
-      function resetTable(){
-        let table = document.getElementsByClassName("results")[0];
-        while (table.getElementsByTagName("tr").length > 1) {
-          let rows = table.getElementsByTagName("tr");
-          table.removeChild(rows[rows.length-1]);
-        }
       }
     </script>
   </body>
