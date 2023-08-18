@@ -164,7 +164,7 @@
               book.fields.Barcode = cols[0].innerText;
               book.fields.Title = cols[1].innerText;
               book.fields.Price = parseFloat(cols[2].innerText);
-              book.fields.Scanned = [];
+              book.fields.Bills = [billID];
             }
             books.push(book);
           }
