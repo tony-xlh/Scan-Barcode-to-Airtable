@@ -153,15 +153,18 @@
         let books = [];
         let rows = document.getElementsByTagName('tr');
         for (let i = 1; i < rows.length; i++) { //skip the head
-          let row = [], cols = rows[i].querySelectorAll('td, th');
-          let book = {fields:{}};
-          for (let j = 0; j < cols.length - 1; j++) { //do not include the last column
-            book.fields.Barcode = cols[0].innerText;
-            book.fields.Title = cols[1].innerText;
-            book.fields.Price = parseFloat(cols[2].innerText);
-            book.fields.Scanned = [];
+          let row = rows[i];
+          if (row.getAttribute("unsynced")) {
+            let cols = row.querySelectorAll('td, th');
+            let book = {fields:{}};
+            for (let j = 0; j < cols.length - 1; j++) { //do not include the last column
+              book.fields.Barcode = cols[0].innerText;
+              book.fields.Title = cols[1].innerText;
+              book.fields.Price = parseFloat(cols[2].innerText);
+              book.fields.Scanned = [];
+            }
+            books.push(book);
           }
-          books.push(book);
         }
         return books;
       }
@@ -294,13 +297,16 @@
             }
           }
           let rowValues = [ISBN,title,price];
-          insertRow(rowValues);
+          insertRow(rowValues,true);
         }
       }
 
-      function insertRow(rowValues){
+      function insertRow(rowValues,unsynced){
         let table = document.getElementsByClassName("results")[0];
         let tr = document.createElement("tr");
+        if (unsynced) {
+          tr.setAttribute("unsynced",true);
+        }
         for (let index = 0; index < rowValues.length; index++) {
           const value = rowValues[index];
           let td = document.createElement("td");
@@ -398,14 +404,6 @@
           }
         }
         return table;
-      }
-
-      function loadDataToTable(table){
-        resetTable();
-        for (let index = 1; index < table.length; index++) {
-          const row = table[index];
-          insertRow(row);
-        }
       }
 
       function resetTable(){
