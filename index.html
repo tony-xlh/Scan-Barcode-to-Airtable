@@ -94,7 +94,42 @@
       }
 
       function createBill(){
-        
+        let name = document.getElementsByClassName("billInput")[0].value;
+        if (isValidBillName(name)) {
+          base('Bills').create([
+            {
+              "fields": {
+                "Bill Name": name,
+                "Books": []
+              }
+            }
+          ], function(err, records) {
+            if (err) {
+              console.error(err);
+              return;
+            }
+            records.forEach(function (record) {
+              console.log(record.getId());
+              appendBill(record);
+            });
+          });
+        }else{
+          alert("Invalid name.");
+        }
+      }
+
+      function isValidBillName(name) {
+        if (!name) {
+          return false;
+        }
+        let bills = document.getElementsByClassName("bills")[0].children;
+        for (let index = 0; index < bills.length; index++) {
+          const item = bills[index];
+          if (name === item.children[0].innerText) {
+            return false;
+          }
+        }
+        return true;
       }
     </script>
   </body>
