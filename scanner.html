@@ -286,16 +286,16 @@
 
           base('Bills').find(billID, function(err, record) {
             if (err) { console.error(err); return; }
-            console.log(record);
             let bookRecordIDs = record.fields["Books"];
-            console.log(bookRecordIDs);
-            for (let index = 0; index < bookRecordIDs.length; index++) {
-              const recordID = bookRecordIDs[index];
-              base('Books').find(recordID, function(err, record) {
-                if (err) { console.error(err); return; }
-                insertRow([record.fields["Barcode"],record.fields["Title"],record.fields["Price"]],recordID);
-                calculateTotalPrice();
-              });
+            if (bookRecordIDs) {
+              for (let index = 0; index < bookRecordIDs.length; index++) {
+                const recordID = bookRecordIDs[index];
+                base('Books').find(recordID, function(err, record) {
+                  if (err) { console.error(err); return; }
+                  insertRow([record.fields["Barcode"],record.fields["Title"],record.fields["Price"]],recordID);
+                  calculateTotalPrice();
+                });
+              }
             }
           });
         }
