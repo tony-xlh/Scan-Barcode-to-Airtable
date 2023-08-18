@@ -86,7 +86,7 @@
         a.target = "_blank";
         a.href = "javascript:void();"
         a.addEventListener("click",function(){
-          window.open("/scanner.html?id="+encodeURIComponent(id)+"&name="+encodeURIComponent(name));
+          window.open("./scanner.html?id="+encodeURIComponent(id)+"&name="+encodeURIComponent(name));
         });
         a.innerText = name;
         item.appendChild(a);
