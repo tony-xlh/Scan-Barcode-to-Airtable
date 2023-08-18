@@ -157,7 +157,7 @@
         let rows = document.getElementsByTagName('tr');
         for (let i = 1; i < rows.length; i++) { //skip the head
           let row = rows[i];
-          if (row.getAttribute("unsynced")) {
+          if (!row.getAttribute("data-recordID")) {
             let cols = row.querySelectorAll('td, th');
             let book = {fields:{}};
             for (let j = 0; j < cols.length - 1; j++) { //do not include the last column
@@ -290,7 +290,7 @@
               const recordID = bookRecordIDs[index];
               base('Books').find(recordID, function(err, record) {
                 if (err) { console.error(err); return; }
-                insertRow([record.fields["Barcode"],record.fields["Title"],record.fields["Price"]]);
+                insertRow([record.fields["Barcode"],record.fields["Title"],record.fields["Price"]],recordID);
                 calculateTotalPrice();
               });
             }
@@ -331,11 +331,11 @@
         }
       }
 
-      function insertRow(rowValues,unsynced){
+      function insertRow(rowValues,recordID){
         let table = document.getElementsByClassName("results")[0];
         let tr = document.createElement("tr");
-        if (unsynced) {
-          tr.setAttribute("unsynced",true);
+        if (recordID) {
+          tr.setAttribute("data-recordID",recordID);
         }
         for (let index = 0; index < rowValues.length; index++) {
           const value = rowValues[index];
