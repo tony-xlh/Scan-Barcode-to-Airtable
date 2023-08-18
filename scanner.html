@@ -87,6 +87,7 @@
         <span id="status"></span>
       </div>
       <div class="resultContainer fullwidth">
+        <div class="name"></div>
         <table class="results fullwidth">
           <tr>
             <th>ISBN</th>
@@ -112,10 +113,12 @@
       let airTableToken = "patnRRYYXKkXKSnew.6d442e02ad7d3fffcb5624fc431acd79dc4ed95c6176086337fad36321abbc89";
       let airTableBaseID = "appx4D8MigaCw61SS";
       let base = new Airtable({apiKey: airTableToken}).base(airTableBaseID);
+      let billID = "";
       const priceColumnIndex = 2;
 
       window.onload = function() {
         init();
+        loadBooksInBill();
         document.getElementsByClassName("scanButton")[0].addEventListener("click",function(){
           startScan();
         });
@@ -273,6 +276,33 @@
           processing = false;
         }
       };
+
+      function loadBooksInBill(){
+        let id = getUrlParam("id");
+        let name = getUrlParam("name");
+        if (id && name) {
+          document.getElementsByClassName("name")[0].innerText = name;
+          billID = id;
+          base('Bills').find(billID, function(err, record) {
+            if (err) { console.error(err); return; }
+            let bookRecordIDs = record.fields["Books"];
+            for (let index = 0; index < bookRecordIDs.length; index++) {
+              const recordID = bookRecordIDs[index];
+              base('Books').find(recordID, function(err, record) {
+                if (err) { console.error(err); return; }
+                insertRow([record.fields["Barcode"],record.fields["Title"],record.fields["Price"]]);
+                calculateTotalPrice();
+              });
+            }
+          });
+        }
+      }
+
+      function getUrlParam(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) return unescape(r[2]); return null;
+      }
 
       async function insert(barcodeText) {
         if (barcodeText) {
