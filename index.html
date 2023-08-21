@@ -133,6 +133,7 @@
               console.error(err);
               return;
             }
+            document.getElementsByClassName("inputModal")[0].style.visibility = "hidden";
             records.forEach(function (record) {
               console.log(record.getId());
               appendBill(record);
