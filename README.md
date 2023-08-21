@@ -1,6 +1,6 @@
 # Scan-Barcode-to-Airtable
 
-A demo of scanning barcodes to Airtable.
+A demo of scanning barcodes to Airtable. [Dynamsoft Barcode Reader](https://www.dynamsoft.com/barcode-reader/overview/) is used to scan barcodes.
 
 [Online demo](https://tony-xlh.github.io/Scan-Barcode-to-Airtable/)
 
@@ -13,3 +13,4 @@ Books table:
 Bills table:
 
 ![](./screenshots/table-bills.jpg)
+
