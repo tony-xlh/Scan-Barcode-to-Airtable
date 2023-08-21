@@ -25,12 +25,25 @@
         z-index: 9999;
         visibility: hidden;
       }
+      table {
+        border-collapse: collapse;
+      }
+
+      table, th, td {
+        border: 1px solid black;
+        padding: 5px;
+      }
     </style>
   </head>
   <body>
     <div class="app">
       <h2 class="title">Bills</h2>
-      <ol class="bills"></ol>
+      <table class="bills">
+        <tr>
+          <th>Bill Name</th>
+          <th>Action</th>
+        </tr>
+      </table>
       <button class="newBillButton">New Bill</button>
     </div>
     <div class="inputModal">
@@ -65,6 +78,7 @@
       loadBills();
 
       function loadBills(){
+        console.log("load bills");
         base('Bills').select({
           view: "Grid view"
         }).eachPage(function page(records, fetchNextPage) {
@@ -81,7 +95,6 @@
       function appendBill(record){
         let name = record.fields["Bill Name"];
         let id = record.id;
-        let item = document.createElement("li");
         let a = document.createElement("a");
         //a.target = "_blank";
         a.href = "javascript:void();"
@@ -89,8 +102,20 @@
           window.open("./scanner.html?id="+encodeURIComponent(id)+"&name="+encodeURIComponent(name));
         });
         a.innerText = name;
-        item.appendChild(a);
-        document.getElementsByClassName("bills")[0].appendChild(item);
+        let table = document.getElementsByClassName("bills")[0];
+        let tr = document.createElement("tr");
+        let td = document.createElement("td");
+        td.appendChild(a);
+        tr.appendChild(td);
+        let actionTd = document.createElement("td");
+        let deleteButton = document.createElement("button");
+        deleteButton.innerText = "Delete";
+        deleteButton.addEventListener("click",function(){
+          deleteBill(id,tr);
+        });
+        actionTd.appendChild(deleteButton);
+        tr.appendChild(actionTd);
+        table.appendChild(tr);
       }
 
       function createBill(){
@@ -116,6 +141,17 @@
         }else{
           alert("Invalid name.");
         }
+      }
+
+      function deleteBill(recordID,tr){
+        base('Bills').destroy([recordID], function(err, deletedRecords) {
+          if (err) {
+            console.error(err);
+            return;
+          }
+          alert("Deleted");
+          tr.remove();
+        });
       }
 
       function isValidBillName(name) {
